@@ -1,9 +1,18 @@
-# Behaviorial Cloning Project
+# Behavioral Cloning Project
+## Work in Progress: 19/11/2017
 
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-Overview
+
+### Overview
 ---
+
+In this project the steering angles of an autonomous vehicle are predicted based on camera images. The project is written in python 3.6. using the deep learning library keras.
+The approach is based on behavioral cloning. This means that a simulated car is driven in a simulator recording images from three frontal cameras (left, center, right) and the steering angles.
+Based on this dataset, a model is created imitating the behavior in the simulator. Later in autonomous mode, the vehicle predicts the steering angle based on the camera images and keeps on track in the test courses.
+
+---
+
 This repository contains starting files for the Behavioral Cloning Project.
 
 In this project, you will use what you've learned about deep neural networks and convolutional neural networks to clone driving behavior. You will train, validate and test a model using Keras. The model will output a steering angle to an autonomous vehicle.
@@ -44,10 +53,15 @@ This lab requires:
 
 The lab enviroment can be created with CarND Term1 Starter Kit. Click [here](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) for the details.
 
+Needs (if starter-kit is not installed):
+* socketio
+* eventlet
+* flask
+
 The following resources can be found in this github repository:
 * drive.py
+* model.py
 * video.py
-* writeup_template.md
 
 The simulator can be downloaded from the classroom. In the classroom, we have also provided sample data that you can optionally use to help train your model.
 
