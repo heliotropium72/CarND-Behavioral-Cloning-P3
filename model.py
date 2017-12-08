@@ -9,73 +9,57 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
+from random import shuffle #in-place shuffle
 from os.path import join, split, exists
+import csv
 
 # Check if tensorflow (and thus keras) is using the GPU
 import tensorflow as tf
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-# I recorded different data sets here you can set one
+
+###############################################################################
+#
+# Load file paths and steering angles
+
+# Select data set (I recorded different ones)
 #DIR_DATA = 'C:\\Users\\asd\\Documents\\5_CourseWork\\sdc\\training_data'
 DIR_DATA = 'C:\\Users\\asd\\Documents\\5_CourseWork\\sdc\\data'
 
-###############################################################################
-# Read the data 
-# (recorded in self-driving mode)
-'''
-# all at once into memory
-import pandas as pd
 
-datalog = '../data/driving_log.csv'
-data = pd.read_csv(datalog)
-
-images = []
-for camera in ['center', 'left', 'right']:
-    for idx in range(len(data)):
-        source_path = data[camera].values[idx]
-        filename = source_path.split('/')[-1]
-        # use the path on the server
-        current_path = '../data/IMG/' + filename
-        image = cv2.imread(current_path)
-        images.append(image)
-
-X_train = np.array(images)
-
-correction_angle = 0.2
-#y_train = data['steering'].values
-
-# all three cameras
-y_train = np.concatenate([data['steering'].values,
-                     data['steering'].values + correction_angle,
-                     data['steering'].values - correction_angle])
-'''
-
-#################
-# Data augementation
-# TODO: flip all images and add with negative steering angle   
-
-
-#################
-# Use a generator instead of loading all data into memory
-# A generator will load the data only when it is needed
-
-#import os
-import csv
 
 data_rows = []
 with open(join(DIR_DATA, 'driving_log.csv')) as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         data_rows.append(line)
+        
 # delete header of logfile (only needed for data provided by udacity)
 del data_rows[0]
+
+
+###############################################################################
+#
+# Data preparation
+
+# Reduce data amount for fast testing
+#import random
+#data_rows = random.sample(data_rows, 1500)
 
 from sklearn.model_selection import train_test_split
 train_samples, validation_samples = train_test_split(data_rows, test_size=0.2)
 
-from random import shuffle #in-place shuffle
 
-def generator(samples, batch_size=32, angle_corr=0.2):
+###############################################################################
+#
+# Load image data (using a generator)
+#
+# A generator will load the image data only when it is needed
+# This generator is performing also data augmentation
+# 1) Flipping the image (and angle)
+# 2) Adding image from right and left camera and adding an offset to the angle
+
+def generator(samples, batch_size=32, angle_corr=0.25):
     ''' Loads a batch of images from samples
     Parameters:
     -----------
@@ -96,55 +80,47 @@ def generator(samples, batch_size=32, angle_corr=0.2):
             batch_samples = samples[offset:offset+batch_size]
 
             images = []
-            images_left = []
-            images_right = []
-            images_flip = []
             angles = []
             for batch_sample in batch_samples:
                 file_center = join(DIR_DATA, 'IMG', split(batch_sample[0])[1])
                 file_left = join(DIR_DATA, 'IMG', split(batch_sample[1])[1])
                 file_right = join(DIR_DATA, 'IMG', split(batch_sample[2])[1])
                 if not exists(file_center):
-                    print('File path does not exist')
-                    
-                images.append(cv2.imread(file_center))
-                #images_left.append(cv2.imread(file_left))
-                #images_right.append(cv2.imread(file_right))
-                images_flip.append(cv2.flip(images[-1],1))
-
-                center_angle = float(batch_sample[3])
-                #left_angle = center_angle + angle_corr
-                #right_angle = center_angle - angle_corr
-                angle_flip = -1*center_angle
+                    print('{}  does not exist'.format(file_center))
                 
-                #images.append(center_image)
+                center_angle = float(batch_sample[3])
+                
+                # Image from central camera (converted from BGR to RGB)
+                images.append(cv2.imread(file_center)[...,::-1])
                 angles.append(center_angle)
-                #angles.append(left_angle)
-                #angles.append(right_angle)
-                angles.append(angle_flip)
+                # Flipped Image from central camera
+                images.append(cv2.flip(images[-1],1))
+                angles.append(-1*center_angle)
+                # Image from right camera
+                images.append(cv2.imread(file_right)[...,::-1])
+                angles.append(center_angle - angle_corr)
+                # Image from left camera
+                images.append(cv2.imread(file_left)[...,::-1])               
+                angles.append(center_angle + angle_corr)
             
-            # Combine the data
-            #images = images + images_left + images_right + images_flip
-            images = images + images_flip
-            
-            # trim image to only see section with road
+            # convert to array
             X_train = np.array(images)
             y_train = np.array(angles)
             yield sklearn.utils.shuffle(X_train, y_train)
 
-# compile and train the model using the generator function
-
-IMAGE_INPUT = 15
-AUGMENTATION = 2 # How many images are created form a single logfile row         
+IMAGE_INPUT = 32
+AUGMENTATION = 4 # How many images are created form a single logfile row         
 BATCH_SIZE = IMAGE_INPUT * AUGMENTATION
-DROPOUT = 0.1
+EPOCHS = 5
+DROPOUT = 0.2
+
+print('The data set contains {} samples, resulting in {} after augmentation'.format(len(train_samples), AUGMENTATION * len(train_samples)))
 
 train_generator = generator(train_samples, batch_size=IMAGE_INPUT)
 validation_generator = generator(validation_samples, batch_size=IMAGE_INPUT)
 
-#ch, row, col = 3, 80, 320  # Trimmed image format
-
-#################
+###############################################################################
+#
 # Prediction model: Regression model
     
 from keras.models import Sequential
@@ -156,9 +132,6 @@ from keras.layers import Flatten, Dense, Lambda, Dropout, Cropping2D
 # Cropping2D : Crop image to reduce disturbing information (sky, trees,...) (This is parallised on the GPU so faster than outside the model)
 from keras.layers.convolutional import Conv2D
 from keras.layers.pooling import MaxPooling2D
-# TODO: Implement deeper network from nvidia
-# TODO: Record more data
-# Use a generator and batches to speed up data procession
 
 # LeNet
 model1 = Sequential()
@@ -205,13 +178,13 @@ history_object = model.fit_generator(train_generator,
                     steps_per_epoch=len(train_samples)/IMAGE_INPUT,
                     validation_data=validation_generator,
                     validation_steps=len(validation_samples)/IMAGE_INPUT,
-                    epochs=3, verbose=1)
+                    epochs=EPOCHS, verbose=1)
 
 model.save('model.h5')
 
-##################
+###############################################################################
+#
 # Visualisation
-#from keras.models import Model
 
 ### print the keys contained in the history object
 print(history_object.history.keys())
