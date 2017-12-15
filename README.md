@@ -1,6 +1,4 @@
 # Behavioral Cloning Project
-## Work in Progress: 19/11/2017
-
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
 
@@ -104,7 +102,7 @@ Will run the video at 48 FPS. The default FPS is 60.
 
 [//]: # (Image References)
 
-[image1]: ./Figures/loss.png "Loss"
+[loss]: ./Figures/Loss.png "Loss"
 [center]: ./Figures/center.jpg "Center"
 [left]: ./Figures/left.jpg "Left"
 [right]: ./Figures/right.jpg "Right"
@@ -141,15 +139,15 @@ The total amount of recorded images was 22954 which was augmented by a factor of
 ### Model Architecture and Training Strategy
 
 #### 1. Preprocessing
-The images are read-in using a generator to save memory. Inside the generator the data augmentation (see section above) happens. Further, the image are read-in usging OpenCV and are therefore in the RGB order.
-They are converted into BGR because the images are read-in as BGR by ´drive.py´ while driving in autonomous mode. This is important as yellow lane marks are only detected successfully if the colour order is correct.
+The images are read-in using a generator to save memory. Inside the generator the data augmentation (see section above) happens. Further, the image are read-in using OpenCV and are therefore in the RGB order.
+They are converted into BGR because the images are read-in as BGR by `drive.py` while driving in autonomous mode. This is important as yellow lane marks are only detected successfully if the color order is correct.
 Inside the model architecture, the images are cropped to the relevant scene and normalized.
 
 #### 2. Nvidia architecture for steering angle prediction
 `model.py` contains two model implementations: A LeNet and the Nividia architecture. I started with the simpler LeNet to get an overview of the data but then switched to the Nividia model.
 
 The model is based on the CNN architecture of [NVIDIA](https://devblogs.nvidia.com/parallelforall/deep-learning-self-driving-cars/) with some modifications.
-The Nvidia model consits of five convolutional layers, and three fully connected layers. 
+The Nvidia model consists of five convolutional layers, and three fully connected layers. 
 The Nvidia model was extent with dropout layers to reduce overfitting.
 
 #### 3. Training
@@ -169,10 +167,10 @@ I used the following hyperparameters for training
 | Epochs         | 5     |
 
 The model performed well on training and validation set suggesting that there is no major overfitting.
-![alt text][image1]
+![alt text][loss]
 
 
 ### Performance on track
-After training, the car suffesfully stays on track 1. There is still room for improvement as the car is wiggeling around the center of the lane.
+After training, the car successfully stays on track 1. There is still room for improvement as the car is wiggling around the center of the lane.
 Also the recorded data is all from the same track, using also data from the second track would generalize the model to new situations. However, for me this was out of questions due to the simulator controls.
 
